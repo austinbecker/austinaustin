@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: #111;
+      color: #eee;
+      font-family: monospace;
+    }
+
+    main { text-align: center; }
+
+    h1 {
+      margin: 0 0 12px;
+      color: #70e000;
+      letter-spacing: 4px;
+    }
+
+    #score { margin: 0 0 12px; }
+
+    canvas {
+      display: block;
+      width: min(90vw, 400px);
+      height: min(90vw, 400px);
+      border: 4px solid #70e000;
+      background: #191919;
+      image-rendering: pixelated;
+    }
+
+    #message {
+      min-height: 1.5em;
+      margin-top: 12px;
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SNAKE</h1>
+    <p id="score">Score: 0</p>
+    <canvas id="game" width="400" height="400" aria-label="Snake game"></canvas>
+    <p id="message">Use arrow keys or WASD to move</p>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#game");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.querySelector("#score");
+    const message = document.querySelector("#message");
+
+    const tile = 20;
+    const tiles = canvas.width / tile;
+
+    let snake, food, direction, nextDirection, score, gameOver, timer;
+
+    function reset() {
+      snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+      ];
+      direction = { x: 1, y: 0 };
+      nextDirection = { ...direction };
+      score = 0;
+      gameOver = false;
+      scoreDisplay.textContent = "Score: 0";
+      message.textContent = "Use arrow keys or WASD to move";
+      placeFood();
+      clearInterval(timer);
+      timer = setInterval(update, 110);
+      draw();
+    }
+
+    function placeFood() {
+      do {
+        food = {
+          x: Math.floor(Math.random() * tiles),
+          y: Math.floor(Math.random() * tiles)
+        };
+      } while (snake.some(part => part.x === food.x && part.y === food.y));
+    }
+
+    function draw() {
+      ctx.fillStyle = "#191919";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#ff4040";
+      ctx.fillRect(food.x * tile + 2, food.y * tile + 2, tile - 4, tile - 4);
+
+      snake.forEach((part, index) => {
+        ctx.fillStyle = index === 0 ? "#b7ff00" : "#70e000";
+        ctx.fillRect(part.x * tile + 1, part.y * tile + 1, tile - 2, tile - 2);
+      });
+    }
+
+    function update() {
+      direction = nextDirection;
+
+      const head = {
+        x: snake[0].x + direction.x,
+        y: snake[0].y + direction.y
+      };
+
+      const eating = head.x === food.x && head.y === food.y;
+      const bodyToCheck = eating ? snake : snake.slice(0, -1);
+
+      if (
+        head.x < 0 || head.x >= tiles ||
+        head.y < 0 || head.y >= tiles ||
+        bodyToCheck.some(part => part.x === head.x && part.y === head.y)
+      ) {
+        gameOver = true;
+        clearInterval(timer);
+        message.textContent = "Game over — press Space to play again";
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (eating) {
+        score++;
+        scoreDisplay.textContent = `Score: ${score}`;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    document.addEventListener("keydown", event => {
+      const keys = {
+        ArrowUp:    { x: 0, y: -1 },
+        w:           { x: 0, y: -1 },
+        ArrowDown:  { x: 0, y: 1 },
+        s:           { x: 0, y: 1 },
+        ArrowLeft:  { x: -1, y: 0 },
+        a:           { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        d:           { x: 1, y: 0 }
+      };
+
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+
+      if (key === " " && gameOver) {
+        reset();
+        return;
+      }
+
+      const newDirection = keys[key];
+      if (!newDirection) return;
+
+      event.preventDefault();
+
+      // Prevent the snake from reversing into itself.
+      if (
+        newDirection.x !== -direction.x ||
+        newDirection.y !== -direction.y
+      ) {
+        nextDirection = newDirection;
+      }
+    });
+
+    reset();
+  </script>
+</body>
+</html>
